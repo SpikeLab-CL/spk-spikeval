@@ -8,7 +8,7 @@ def classification_summary(
         query: str=None, 
         full: bool=False, 
         step: float=0.01
-    ):
+    ) -> pd.DataFrame:
     """
     Computes multiple summary stats over the input dataframe
     containing the resuling predictions and targets of a
