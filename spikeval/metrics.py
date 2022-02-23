@@ -7,7 +7,8 @@ def classification_summary(
         pred_col: str='pred', 
         query: str=None, 
         full: bool=False, 
-        step: float=0.01
+        step: float=0.01,
+        custom_metrics: dict=None,
     ) -> pd.DataFrame:
     """
     Computes multiple summary stats over the input dataframe
@@ -31,6 +32,14 @@ def classification_summary(
     step: float
         If full=True, this is the step size for the percentiles
         between 0 and 1.
+    custom_metrics: dict
+        Dictionary containing the pairs metric_name:metric_function
+        for metrics to be computed on the dataframe. The signature of
+        the metric_function is:
+            metric_function(dataframe_full, dataframe_filtered)
+        were dataframe_full is the same as the input dataframe
+        and dataframe_filtered the dataframe filtered by the
+        corresponding percentiles.
 
     Returns
     -------
@@ -55,18 +64,17 @@ def classification_summary(
 
         thresh = dataframe_[pred_col].quantile(1-frac)
         dataframe_['top'] = dataframe_[pred_col] > thresh
-
-        cum_resp_rate = dataframe_.query('top')[target_col].mean()
-        cum_lift = cum_resp_rate / dataframe_[target_col].mean()
-
-        cum_capture_rate = dataframe_.query('top')[target_col].sum() / dataframe_[target_col].sum()
-
         dataframe_['group'] = (dataframe_[pred_col] > thresh) & (
             dataframe_[pred_col] <= prev_thresh)
 
+        # computes cumulative stats
+        cum_resp_rate = dataframe_.query('top')[target_col].mean()
+        cum_lift = cum_resp_rate / dataframe_[target_col].mean()
+        cum_capture_rate = dataframe_.query('top')[target_col].sum() / dataframe_[target_col].sum()
+
+        # computes group stats
         resp_rate = dataframe_.query('group')[target_col].mean()
         lift = resp_rate / dataframe_[target_col].mean()
-
         capture_rate = dataframe_.query('group')[target_col].sum() / dataframe_[target_col].sum()
 
         results.append({
@@ -82,6 +90,11 @@ def classification_summary(
             'cumulative_capture_rate': cum_capture_rate,
             'cumulative_capture_pct': int(cum_capture_rate*100),
         })
+
+        if custom_metrics is not None:
+            for metric_name,metric_func in custom_metrics.items():
+                results[-1][f"{metric_name}"] = metric_func(dataframe_, dataframe_.query('group'))
+                results[-1][f"cumulative_{metric_name}"] = metric_func(dataframe_, dataframe_.query('top'))
         
         prev_thresh = thresh
 
