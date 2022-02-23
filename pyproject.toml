@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "spikeval"
-version = "0.1.0"
+version = "0.1.1"
 description = "ML evaluation/validation utilities by Spike"
 authors = ["Martín Villanueva <mavillan@spikelab.xyz>"]
 
